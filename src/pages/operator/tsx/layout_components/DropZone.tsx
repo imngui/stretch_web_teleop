@@ -246,9 +246,10 @@ function dropzoneRules(active: ComponentType, parent: ComponentType) {
     if (active !== ComponentType.SingleTab && parent === ComponentType.Panel)
         return false;
 
-    // Only button pad can go into video stream
+    // Only button pad and predictive display can go into video stream
     if (
         active !== ComponentType.ButtonPad &&
+        active !== ComponentType.PredictiveDisplay &&
         parent === ComponentType.CameraView
     )
         return false;

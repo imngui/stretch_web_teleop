@@ -1,0 +1,55 @@
+/**
+ * Styles for the CustomOverlay component
+ */
+
+.custom-overlay-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicks to pass through to video */
+    z-index: 10; /* Above video but below other UI elements */
+}
+
+.custom-overlay-container.customizing {
+    pointer-events: auto; /* Enable interaction during customization */
+}
+
+/* SVG layer for vector graphics */
+.custom-overlay-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Canvas layer for raster graphics */
+.custom-overlay-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Optional: Add hover effect for interactive overlays */
+.custom-overlay-container.interactive {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* Optional: Style for when overlay is active/visible */
+.custom-overlay-container.active {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+/* Optional: Style for when overlay is hidden */
+.custom-overlay-container.hidden {
+    opacity: 0;
+    pointer-events: none;
+}

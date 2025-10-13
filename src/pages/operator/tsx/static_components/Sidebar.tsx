@@ -13,6 +13,8 @@ import {
     CameraViewDefinition,
     CameraViewId,
     MapDefinition,
+    CustomOverlayId,
+    CustomOverlayDefinition,
 } from "../utils/component_definitions";
 import { PopupModal } from "../basic_components/PopupModal";
 import { Dropdown } from "../basic_components/Dropdown";
@@ -95,6 +97,8 @@ function componentDescription(definition: ComponentDefinition): string {
         case ComponentType.VirtualJoystick:
         case ComponentType.ButtonGrid:
         case ComponentType.Map:
+        case ComponentType.CustomOverlay:
+        case ComponentType.PredictiveDisplay:
             return definition.type;
         default:
             throw Error(
@@ -338,7 +342,11 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
     const pd =
         definition.children.length > 0 &&
         definition.children[0].type == ComponentType.PredictiveDisplay;
+    const co =
+        definition.children.length > 0 &&
+        definition.children[0].type == ComponentType.CustomOverlay;
     const [predictiveDisplayOn, setPredictiveDisplayOn] = React.useState(pd);
+    const [customOverlayOn, setCustomOverlayOn] = React.useState(co);
     const [showButtons, setShowButtons] = React.useState<boolean>(true);
 
     function togglePredictiveDisplay() {
@@ -347,10 +355,36 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
         if (newPdOn) {
             // Add predictive display to the stream
             definition.children = [{ type: ComponentType.PredictiveDisplay }];
+            setCustomOverlayOn(false);
         } else {
             definition.children = [];
         }
         props.updateLayout();
+    }
+
+    function toggleCustomOverlay() {
+        const newCoOn = !customOverlayOn;
+        setCustomOverlayOn(newCoOn);
+        if (newCoOn) {
+            // Add custom overlay to the stream with default type
+            definition.children = [{
+                type: ComponentType.CustomOverlay,
+                id: CustomOverlayId.RedLines
+            } as CustomOverlayDefinition];
+            setPredictiveDisplayOn(false);
+        } else {
+            definition.children = [];
+        }
+        props.updateLayout();
+    }
+
+    function setOverlayType(overlayType: CustomOverlayId) {
+        if (definition.children.length > 0 &&
+            definition.children[0].type === ComponentType.CustomOverlay) {
+            // Update the overlay type
+            (definition.children[0] as CustomOverlayDefinition).id = overlayType;
+            props.updateLayout();
+        }
     }
 
     function toggleButtons() {
@@ -359,6 +393,13 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
         props.updateLayout();
     }
 
+    // Get current overlay type
+    const currentOverlayType = (customOverlayOn &&
+        definition.children.length > 0 &&
+        definition.children[0].type === ComponentType.CustomOverlay)
+        ? (definition.children[0] as CustomOverlayDefinition).id || CustomOverlayId.RedLines
+        : CustomOverlayId.RedLines;
+
     return (
         <React.Fragment>
             {/* <OnOffToggleButton
@@ -366,6 +407,22 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
                 onClick={togglePredictiveDisplay}
                 label="Predictive Display"
             /> */}
+            <OnOffToggleButton
+                on={customOverlayOn}
+                onClick={toggleCustomOverlay}
+                label="Custom Overlay"
+            />
+            {customOverlayOn && (
+                <div className="overlay-type-selector">
+                    <span className="global-label">Overlay Type:</span>
+                    <Dropdown
+                        onChange={(idx) => setOverlayType(Object.values(CustomOverlayId)[idx])}
+                        selectedIndex={Object.values(CustomOverlayId).indexOf(currentOverlayType)}
+                        possibleOptions={Object.values(CustomOverlayId).filter(id => id !== CustomOverlayId.None)}
+                        placement="bottom"
+                    />
+                </div>
+            )}
             <OnOffToggleButton
                 on={!definition.displayButtons}
                 onClick={toggleButtons}
@@ -378,7 +435,35 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
 /** Options for the camera video stream layout component. */
 const VideoStreamOptions = (props: OptionsProps) => {
     const definition = props.selectedDefinition as CameraViewDefinition;
+    const co =
+        definition.children.length > 0 &&
+        definition.children[0].type == ComponentType.CustomOverlay;
+    const [customOverlayOn, setCustomOverlayOn] = React.useState(co);
     const [showButtons, setShowButtons] = React.useState<boolean>(true);
+
+    function toggleCustomOverlay() {
+        const newCoOn = !customOverlayOn;
+        setCustomOverlayOn(newCoOn);
+        if (newCoOn) {
+            // Add custom overlay to the stream with default type
+            definition.children = [{
+                type: ComponentType.CustomOverlay,
+                id: CustomOverlayId.RedLines
+            } as CustomOverlayDefinition];
+        } else {
+            definition.children = [];
+        }
+        props.updateLayout();
+    }
+
+    function setOverlayType(overlayType: CustomOverlayId) {
+        if (definition.children.length > 0 &&
+            definition.children[0].type === ComponentType.CustomOverlay) {
+            // Update the overlay type
+            (definition.children[0] as CustomOverlayDefinition).id = overlayType;
+            props.updateLayout();
+        }
+    }
 
     function toggleButtons() {
         setShowButtons(!showButtons);
@@ -386,8 +471,31 @@ const VideoStreamOptions = (props: OptionsProps) => {
         props.updateLayout();
     }
 
+    // Get current overlay type
+    const currentOverlayType = (customOverlayOn &&
+        definition.children.length > 0 &&
+        definition.children[0].type === ComponentType.CustomOverlay)
+        ? (definition.children[0] as CustomOverlayDefinition).id || CustomOverlayId.RedLines
+        : CustomOverlayId.RedLines;
+
     return (
         <React.Fragment>
+            <OnOffToggleButton
+                on={customOverlayOn}
+                onClick={toggleCustomOverlay}
+                label="Custom Overlay"
+            />
+            {customOverlayOn && (
+                <div className="overlay-type-selector">
+                    <span className="global-label">Overlay Type:</span>
+                    <Dropdown
+                        onChange={(idx) => setOverlayType(Object.values(CustomOverlayId)[idx])}
+                        selectedIndex={Object.values(CustomOverlayId).indexOf(currentOverlayType)}
+                        possibleOptions={Object.values(CustomOverlayId).filter(id => id !== CustomOverlayId.None)}
+                        placement="bottom"
+                    />
+                </div>
+            )}
             <OnOffToggleButton
                 on={!definition.displayButtons}
                 onClick={toggleButtons}

@@ -26,6 +26,7 @@ import {
 } from "./CustomizableComponent";
 import { DropZone } from "./DropZone";
 import { PredictiveDisplay } from "./PredictiveDisplay";
+import { CustomOverlay } from "./CustomOverlay";
 import {
     buttonFunctionProvider,
     hasBetaTeleopKit,
@@ -576,6 +577,8 @@ function createOverlay(
             );
         case ComponentType.PredictiveDisplay:
             return <PredictiveDisplay {...overlayProps} />;
+        case ComponentType.CustomOverlay:
+            return <CustomOverlay {...overlayProps} />;
         default:
             throw Error(
                 "Video stream at path " +

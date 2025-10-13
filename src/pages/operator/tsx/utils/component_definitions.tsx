@@ -25,6 +25,7 @@ export enum ComponentType {
     Map = "Map",
     RunStopButton = "Run Stop Button",
     BatteryGuage = "Battery Gauge",
+    CustomOverlay = "Custom Overlay",
 }
 
 /**
@@ -57,11 +58,21 @@ export enum ButtonPadIdMobile {
 }
 
 /**
+ * ID for custom overlay type - different overlay implementations
+ */
+export enum CustomOverlayId {
+    RedLines = "Red Lines",
+    BlueGrid = "Blue Grid",
+    Crosshair = "Crosshair",
+    None = "None",
+}
+
+/**
  * Identifier for the subtype of the component
  * (e.g. which video stream camera, or which button pad)
  * @note any new components with ID fields should be added to this type
  */
-export type ComponentId = CameraViewId | ButtonPadId | ButtonPadIdMobile;
+export type ComponentId = CameraViewId | ButtonPadId | ButtonPadIdMobile | CustomOverlayId;
 
 /**
  * Definition for any interface component. Any video stream, button pad,
@@ -206,6 +217,14 @@ export type RealsenseVideoStreamDef = CameraViewDefinition & {
      * If the user has toggled on the human body pose estimate overlay.
      */
     bodyPoseAR?: boolean;
+};
+
+/**
+ * Definition for the custom overlay component
+ */
+export type CustomOverlayDefinition = ComponentDefinition & {
+    /** The type/style of overlay to display */
+    id: CustomOverlayId;
 };
 
 /**
