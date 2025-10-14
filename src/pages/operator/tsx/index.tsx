@@ -33,6 +33,7 @@ import { isMobile } from "react-device-detect";
 import "operator/css/index.css";
 import { RunStopFunctionProvider } from "./function_providers/RunStopFunctionProvider";
 import { BatteryVoltageFunctionProvider } from "./function_providers/BatteryVoltageFunctionProvider";
+import { WebGazerFunctionProvider } from "./function_providers/WebGazerFunctionProvider";
 import { waitUntilAsync } from "../../../shared/util";
 
 let allRemoteStreams: Map<string, RemoteStream> = new Map<
@@ -62,6 +63,8 @@ export var movementRecorderFunctionProvider: MovementRecorderFunctionProvider;
 export var textToSpeechFunctionProvider: TextToSpeechFunctionProvider;
 export var homeTheRobotFunctionProvider: HomeTheRobotFunctionProvider =
     new HomeTheRobotFunctionProvider();
+export var webGazerFunctionProvider: WebGazerFunctionProvider =
+    new WebGazerFunctionProvider();
 
 // Create the WebRTC connection and connect the operator room
 connection = new WebRTCConnection({

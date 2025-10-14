@@ -99,6 +99,7 @@ function componentDescription(definition: ComponentDefinition): string {
         case ComponentType.Map:
         case ComponentType.CustomOverlay:
         case ComponentType.PredictiveDisplay:
+        case ComponentType.WebGazerControl:
             return definition.type;
         default:
             throw Error(
@@ -596,6 +597,7 @@ const SidebarComponentProvider = (props: SidebarComponentProviderProps) => {
         { type: ComponentType.ButtonGrid },
         { type: ComponentType.VirtualJoystick },
         { type: ComponentType.Map },
+        { type: ComponentType.WebGazerControl },
     ];
 
     function handleSelect(type: ComponentType, id?: ComponentId) {

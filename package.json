@@ -38,7 +38,8 @@
         "socket.io": "^4.6.1",
         "socket.io-client": "^4.6.1",
         "style-loader": "^3.3.2",
-        "three": "^0.157.0"
+        "three": "^0.157.0",
+        "webgazer": "^3.4.0"
     },
     "scripts": {
         "firebase": "webpack --mode development --progress --env storage='firebase'",

@@ -26,6 +26,7 @@ export enum ComponentType {
     RunStopButton = "Run Stop Button",
     BatteryGuage = "Battery Gauge",
     CustomOverlay = "Custom Overlay",
+    WebGazerControl = "WebGazer Control",
 }
 
 /**
