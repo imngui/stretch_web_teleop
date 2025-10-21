@@ -226,6 +226,12 @@ export type RealsenseVideoStreamDef = CameraViewDefinition & {
 export type CustomOverlayDefinition = ComponentDefinition & {
     /** The type/style of overlay to display */
     id: CustomOverlayId;
+    /** Horizontal line positions (as percentages 0-100) */
+    horizontalLinePositions?: [number, number];
+    /** Vertical line positions (as percentages 0-100) */
+    verticalLinePositions?: [number, number];
+    /** Line thickness (strokeWidth value) */
+    lineThickness?: number;
 };
 
 /**

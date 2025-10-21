@@ -388,18 +388,46 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
         }
     }
 
+    function setOverlayLinePositions(horizontal: [number, number], vertical: [number, number]) {
+        if (definition.children.length > 0 &&
+            definition.children[0].type === ComponentType.CustomOverlay) {
+            const overlay = definition.children[0] as CustomOverlayDefinition;
+            overlay.horizontalLinePositions = horizontal;
+            overlay.verticalLinePositions = vertical;
+            props.updateLayout();
+        }
+    }
+
+    function setOverlayLineThickness(thickness: number) {
+        if (definition.children.length > 0 &&
+            definition.children[0].type === ComponentType.CustomOverlay) {
+            (definition.children[0] as CustomOverlayDefinition).lineThickness = thickness;
+            props.updateLayout();
+        }
+    }
+
     function toggleButtons() {
         setShowButtons(!showButtons);
         definition.displayButtons = showButtons;
         props.updateLayout();
     }
 
-    // Get current overlay type
+    // Get current overlay type and settings
     const currentOverlayType = (customOverlayOn &&
         definition.children.length > 0 &&
         definition.children[0].type === ComponentType.CustomOverlay)
         ? (definition.children[0] as CustomOverlayDefinition).id || CustomOverlayId.RedLines
         : CustomOverlayId.RedLines;
+
+    const overlayDef = (customOverlayOn &&
+        definition.children.length > 0 &&
+        definition.children[0].type === ComponentType.CustomOverlay)
+        ? (definition.children[0] as CustomOverlayDefinition)
+        : undefined;
+
+    const currentHorizontalPos = overlayDef?.horizontalLinePositions || [20, 80];
+    const currentVerticalPos = overlayDef?.verticalLinePositions || [20, 80];
+    const currentThickness = overlayDef?.lineThickness || 0.5;
 
     return (
         <React.Fragment>
@@ -414,15 +442,156 @@ const OverheadVideoStreamOptions = (props: OptionsProps) => {
                 label="Custom Overlay"
             />
             {customOverlayOn && (
-                <div className="overlay-type-selector">
-                    <span className="global-label">Overlay Type:</span>
-                    <Dropdown
-                        onChange={(idx) => setOverlayType(Object.values(CustomOverlayId)[idx])}
-                        selectedIndex={Object.values(CustomOverlayId).indexOf(currentOverlayType)}
-                        possibleOptions={Object.values(CustomOverlayId).filter(id => id !== CustomOverlayId.None)}
-                        placement="bottom"
-                    />
-                </div>
+                <>
+                    <div className="overlay-type-selector">
+                        <span className="global-label">Overlay Type:</span>
+                        <Dropdown
+                            onChange={(idx) => setOverlayType(Object.values(CustomOverlayId)[idx])}
+                            selectedIndex={Object.values(CustomOverlayId).indexOf(currentOverlayType)}
+                            possibleOptions={Object.values(CustomOverlayId).filter(id => id !== CustomOverlayId.None)}
+                            placement="bottom"
+                        />
+                    </div>
+                    {currentOverlayType === CustomOverlayId.RedLines && (
+                        <>
+                            <div className="overlay-settings">
+                                <span className="global-label">Horizontal Line 1 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentHorizontalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [parseFloat(e.target.value), currentHorizontalPos[1]],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentHorizontalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [parseFloat(e.target.value) || 0, currentHorizontalPos[1]],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Horizontal Line 2 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentHorizontalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [currentHorizontalPos[0], parseFloat(e.target.value)],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentHorizontalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [currentHorizontalPos[0], parseFloat(e.target.value) || 0],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Vertical Line 1 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentVerticalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [parseFloat(e.target.value), currentVerticalPos[1]]
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentVerticalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [parseFloat(e.target.value) || 0, currentVerticalPos[1]]
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Vertical Line 2 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentVerticalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [currentVerticalPos[0], parseFloat(e.target.value)]
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentVerticalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [currentVerticalPos[0], parseFloat(e.target.value) || 0]
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Line Thickness:</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0.1"
+                                        max="5"
+                                        step="0.1"
+                                        value={currentThickness}
+                                        onChange={(e) => setOverlayLineThickness(parseFloat(e.target.value))}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0.1"
+                                        max="5"
+                                        step="0.1"
+                                        value={currentThickness}
+                                        onChange={(e) => setOverlayLineThickness(parseFloat(e.target.value) || 0.5)}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </>
             )}
             <OnOffToggleButton
                 on={!definition.displayButtons}
@@ -466,18 +635,46 @@ const VideoStreamOptions = (props: OptionsProps) => {
         }
     }
 
+    function setOverlayLinePositions(horizontal: [number, number], vertical: [number, number]) {
+        if (definition.children.length > 0 &&
+            definition.children[0].type === ComponentType.CustomOverlay) {
+            const overlay = definition.children[0] as CustomOverlayDefinition;
+            overlay.horizontalLinePositions = horizontal;
+            overlay.verticalLinePositions = vertical;
+            props.updateLayout();
+        }
+    }
+
+    function setOverlayLineThickness(thickness: number) {
+        if (definition.children.length > 0 &&
+            definition.children[0].type === ComponentType.CustomOverlay) {
+            (definition.children[0] as CustomOverlayDefinition).lineThickness = thickness;
+            props.updateLayout();
+        }
+    }
+
     function toggleButtons() {
         setShowButtons(!showButtons);
         definition.displayButtons = showButtons;
         props.updateLayout();
     }
 
-    // Get current overlay type
+    // Get current overlay type and settings
     const currentOverlayType = (customOverlayOn &&
         definition.children.length > 0 &&
         definition.children[0].type === ComponentType.CustomOverlay)
         ? (definition.children[0] as CustomOverlayDefinition).id || CustomOverlayId.RedLines
         : CustomOverlayId.RedLines;
+
+    const overlayDef = (customOverlayOn &&
+        definition.children.length > 0 &&
+        definition.children[0].type === ComponentType.CustomOverlay)
+        ? (definition.children[0] as CustomOverlayDefinition)
+        : undefined;
+
+    const currentHorizontalPos = overlayDef?.horizontalLinePositions || [20, 80];
+    const currentVerticalPos = overlayDef?.verticalLinePositions || [20, 80];
+    const currentThickness = overlayDef?.lineThickness || 0.5;
 
     return (
         <React.Fragment>
@@ -487,15 +684,156 @@ const VideoStreamOptions = (props: OptionsProps) => {
                 label="Custom Overlay"
             />
             {customOverlayOn && (
-                <div className="overlay-type-selector">
-                    <span className="global-label">Overlay Type:</span>
-                    <Dropdown
-                        onChange={(idx) => setOverlayType(Object.values(CustomOverlayId)[idx])}
-                        selectedIndex={Object.values(CustomOverlayId).indexOf(currentOverlayType)}
-                        possibleOptions={Object.values(CustomOverlayId).filter(id => id !== CustomOverlayId.None)}
-                        placement="bottom"
-                    />
-                </div>
+                <>
+                    <div className="overlay-type-selector">
+                        <span className="global-label">Overlay Type:</span>
+                        <Dropdown
+                            onChange={(idx) => setOverlayType(Object.values(CustomOverlayId)[idx])}
+                            selectedIndex={Object.values(CustomOverlayId).indexOf(currentOverlayType)}
+                            possibleOptions={Object.values(CustomOverlayId).filter(id => id !== CustomOverlayId.None)}
+                            placement="bottom"
+                        />
+                    </div>
+                    {currentOverlayType === CustomOverlayId.RedLines && (
+                        <>
+                            <div className="overlay-settings">
+                                <span className="global-label">Horizontal Line 1 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentHorizontalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [parseFloat(e.target.value), currentHorizontalPos[1]],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentHorizontalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [parseFloat(e.target.value) || 0, currentHorizontalPos[1]],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Horizontal Line 2 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentHorizontalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [currentHorizontalPos[0], parseFloat(e.target.value)],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentHorizontalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            [currentHorizontalPos[0], parseFloat(e.target.value) || 0],
+                                            currentVerticalPos
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Vertical Line 1 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentVerticalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [parseFloat(e.target.value), currentVerticalPos[1]]
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentVerticalPos[0]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [parseFloat(e.target.value) || 0, currentVerticalPos[1]]
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Vertical Line 2 (%):</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={currentVerticalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [currentVerticalPos[0], parseFloat(e.target.value)]
+                                        )}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={currentVerticalPos[1]}
+                                        onChange={(e) => setOverlayLinePositions(
+                                            currentHorizontalPos,
+                                            [currentVerticalPos[0], parseFloat(e.target.value) || 0]
+                                        )}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                            <div className="overlay-settings">
+                                <span className="global-label">Line Thickness:</span>
+                                <div className="line-position-inputs">
+                                    <input
+                                        type="range"
+                                        min="0.1"
+                                        max="5"
+                                        step="0.1"
+                                        value={currentThickness}
+                                        onChange={(e) => setOverlayLineThickness(parseFloat(e.target.value))}
+                                        style={{ flex: 1, marginRight: '10px' }}
+                                    />
+                                    <input
+                                        type="number"
+                                        min="0.1"
+                                        max="5"
+                                        step="0.1"
+                                        value={currentThickness}
+                                        onChange={(e) => setOverlayLineThickness(parseFloat(e.target.value) || 0.5)}
+                                        style={{ width: '60px' }}
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    )}
+                </>
             )}
             <OnOffToggleButton
                 on={!definition.displayButtons}

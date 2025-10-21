@@ -2,7 +2,30 @@ import React from "react";
 import { className } from "shared/util";
 import { CustomizableComponentProps } from "./CustomizableComponent";
 import { CustomOverlayDefinition, CustomOverlayId } from "../utils/component_definitions";
+import { FunctionProvider } from "../function_providers/FunctionProvider";
 import "operator/css/CustomOverlay.css";
+
+/**
+ * Helper class to access robot control functions
+ * Extends FunctionProvider to access protected remoteRobot
+ */
+class OverlayRobotController extends FunctionProvider {
+    public static driveRobot(linVel: number, angVel: number) {
+        if (!this.remoteRobot) {
+            console.error('[OverlayRobotController] remoteRobot is undefined!');
+            return;
+        }
+        this.remoteRobot.driveBase(linVel, angVel);
+    }
+
+    public static setRobotMode(mode: "position" | "navigation") {
+        if (!this.remoteRobot) {
+            console.error('[OverlayRobotController] remoteRobot is undefined!');
+            return;
+        }
+        this.remoteRobot.setRobotMode(mode);
+    }
+}
 
 /**
  * Custom overlay component router - selects and renders the appropriate overlay type.
@@ -33,6 +56,7 @@ export const CustomOverlay = (props: CustomizableComponentProps) => {
 
 /**
  * Red Lines Overlay - displays 4 red lines at 1/5 and 4/5 positions
+ * with hover-based robot movement control
  *
  * @param props {@link CustomizableComponentProps}
  */
@@ -40,9 +64,20 @@ const RedLinesOverlay = (props: CustomizableComponentProps) => {
     const svgRef = React.useRef<SVGSVGElement>(null);
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
     const { customizing } = props.sharedState;
+    const definition = props.definition as CustomOverlayDefinition;
+
+    // Get line positions and thickness from definition, with defaults
+    const horizontalLinePositions = definition.horizontalLinePositions || [20, 80];
+    const verticalLinePositions = definition.verticalLinePositions || [20, 80];
+    const lineThickness = definition.lineThickness || 0.5;
 
     // Example state for custom visuals - replace with your own data
     const [customVisuals, setCustomVisuals] = React.useState<CustomVisualData[]>([]);
+
+    // State for tracking hover region and movement
+    const [currentRegion, setCurrentRegion] = React.useState<HoverRegion>('center');
+    const [isHovering, setIsHovering] = React.useState(false);
+    const movementIntervalRef = React.useRef<number | null>(null);
 
     // Example: Update visuals from external data source
     React.useEffect(() => {
@@ -110,6 +145,76 @@ const RedLinesOverlay = (props: CustomizableComponentProps) => {
         drawOnCanvas();
     }, [customVisuals, drawOnCanvas]);
 
+    // Handle mouse movement to detect region and control robot
+    const handleMouseMove = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        const container = e.currentTarget;
+        const rect = container.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        const region = getHoverRegion(
+            x, y, rect.width, rect.height,
+            horizontalLinePositions,
+            verticalLinePositions
+        );
+        setCurrentRegion(region);
+        setIsHovering(true);
+    }, [horizontalLinePositions, verticalLinePositions]);
+
+    const handleMouseLeave = React.useCallback(() => {
+        setIsHovering(false);
+        setCurrentRegion('center');
+    }, []);
+
+    // Effect to send velocity commands based on hover region
+    React.useEffect(() => {
+        // Don't send commands while customizing
+        if (customizing) {
+            return;
+        }
+
+        // Clear any existing interval
+        if (movementIntervalRef.current !== null) {
+            window.clearInterval(movementIntervalRef.current);
+            movementIntervalRef.current = null;
+        }
+
+        // If hovering and not in center, send velocity commands
+        if (isHovering && currentRegion !== 'center') {
+            // Switch to navigation mode to enable velocity control
+            console.log(`[CustomOverlay] Hovering in region: ${currentRegion}, switching to navigation mode`);
+            OverlayRobotController.setRobotMode("navigation");
+
+            const [linVel, angVel] = getVelocityForRegion(currentRegion);
+            console.log(`[CustomOverlay] Sending velocity command: linVel=${linVel}, angVel=${angVel}`);
+
+            // Send initial command
+            OverlayRobotController.driveRobot(linVel, angVel);
+
+            // Set up interval to continuously send commands (heartbeat)
+            movementIntervalRef.current = window.setInterval(() => {
+                OverlayRobotController.driveRobot(linVel, angVel);
+            }, 100); // Send every 100ms
+        } else {
+            // Stop the robot when in center or not hovering
+            console.log('[CustomOverlay] Stopping robot (center or not hovering)');
+            OverlayRobotController.driveRobot(0, 0);
+            // Switch back to position mode
+            OverlayRobotController.setRobotMode("position");
+        }
+
+        // Cleanup function
+        return () => {
+            if (movementIntervalRef.current !== null) {
+                window.clearInterval(movementIntervalRef.current);
+                movementIntervalRef.current = null;
+            }
+            // Stop robot and return to position mode when component unmounts or effect re-runs
+            OverlayRobotController.driveRobot(0, 0);
+            OverlayRobotController.setRobotMode("position");
+        };
+    }, [isHovering, currentRegion, customizing]);
+
     // If customizing, show a demo overlay
     const demoOverlay = customizing ? (
         <text
@@ -119,12 +224,30 @@ const RedLinesOverlay = (props: CustomizableComponentProps) => {
             fill="rgba(255, 255, 255, 0.7)"
             fontSize="20"
         >
-            Custom Overlay
+            Custom Overlay (Hover to Move)
+        </text>
+    ) : null;
+
+    // Visual feedback for current hover region
+    const regionHighlight = !customizing && isHovering && currentRegion !== 'center' ? (
+        <text
+            x="50%"
+            y="10"
+            textAnchor="middle"
+            fill="rgba(255, 255, 0, 0.9)"
+            fontSize="3"
+            fontWeight="bold"
+        >
+            {currentRegion.toUpperCase()}
         </text>
     ) : null;
 
     return (
-        <div className={className("custom-overlay-container", { customizing })}>
+        <div
+            className={className("custom-overlay-container", { customizing })}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+        >
             {/* SVG Layer - for vector graphics */}
             <svg
                 ref={svgRef}
@@ -133,49 +256,50 @@ const RedLinesOverlay = (props: CustomizableComponentProps) => {
                 preserveAspectRatio="none"
             >
                 {demoOverlay}
+                {regionHighlight}
 
-                {/* Red crosshair lines - 5px thick */}
-                {/* Horizontal line at 1/5 height (20%) */}
+                {/* Red crosshair lines - customizable positions and thickness */}
+                {/* Horizontal line at first position */}
                 <line
                     x1="0"
-                    y1="20"
+                    y1={horizontalLinePositions[0]}
                     x2="100"
-                    y2="20"
+                    y2={horizontalLinePositions[0]}
                     stroke="red"
-                    strokeWidth="0.5"
+                    strokeWidth={lineThickness}
                     vectorEffect="non-scaling-stroke"
                 />
 
-                {/* Horizontal line at 4/5 height (80%) */}
+                {/* Horizontal line at second position */}
                 <line
                     x1="0"
-                    y1="80"
+                    y1={horizontalLinePositions[1]}
                     x2="100"
-                    y2="80"
+                    y2={horizontalLinePositions[1]}
                     stroke="red"
-                    strokeWidth="0.5"
+                    strokeWidth={lineThickness}
                     vectorEffect="non-scaling-stroke"
                 />
 
-                {/* Vertical line at 1/5 width (20%) */}
+                {/* Vertical line at first position */}
                 <line
-                    x1="20"
+                    x1={verticalLinePositions[0]}
                     y1="0"
-                    x2="20"
+                    x2={verticalLinePositions[0]}
                     y2="100"
                     stroke="red"
-                    strokeWidth="0.5"
+                    strokeWidth={lineThickness}
                     vectorEffect="non-scaling-stroke"
                 />
 
-                {/* Vertical line at 4/5 width (80%) */}
+                {/* Vertical line at second position */}
                 <line
-                    x1="80"
+                    x1={verticalLinePositions[1]}
                     y1="0"
-                    x2="80"
+                    x2={verticalLinePositions[1]}
                     y2="100"
                     stroke="red"
-                    strokeWidth="0.5"
+                    strokeWidth={lineThickness}
                     vectorEffect="non-scaling-stroke"
                 />
 
@@ -390,6 +514,87 @@ interface CustomVisualData {
     color?: string;
     label?: string;
     // Add more properties as needed
+}
+
+/**
+ * Hover regions for red lines overlay
+ * Defines 9 zones created by the red lines at 20% and 80% positions
+ */
+type HoverRegion =
+    | 'top-left' | 'top-center' | 'top-right'
+    | 'center-left' | 'center' | 'center-right'
+    | 'bottom-left' | 'bottom-center' | 'bottom-right';
+
+/**
+ * Determines which region the cursor is hovering over
+ * Uses customizable line positions to create 9 zones
+ */
+function getHoverRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    horizontalLinePositions: [number, number],
+    verticalLinePositions: [number, number]
+): HoverRegion {
+    const xPercent = (x / width) * 100;
+    const yPercent = (y / height) * 100;
+
+    let horizontal: 'left' | 'center' | 'right';
+    let vertical: 'top' | 'center' | 'bottom';
+
+    // Determine horizontal region based on vertical line positions
+    if (xPercent < verticalLinePositions[0]) {
+        horizontal = 'left';
+    } else if (xPercent > verticalLinePositions[1]) {
+        horizontal = 'right';
+    } else {
+        horizontal = 'center';
+    }
+
+    // Determine vertical region based on horizontal line positions
+    if (yPercent < horizontalLinePositions[0]) {
+        vertical = 'top';
+    } else if (yPercent > horizontalLinePositions[1]) {
+        vertical = 'bottom';
+    } else {
+        vertical = 'center';
+    }
+
+    // Combine to create region name
+    return `${vertical}-${horizontal}` as HoverRegion;
+}
+
+/**
+ * Get robot velocity commands based on hover region
+ * Returns [linearVelocity, angularVelocity]
+ */
+function getVelocityForRegion(region: HoverRegion): [number, number] {
+    const linearSpeed = 0.1;  // m/s
+    const angularSpeed = 0.3; // rad/s
+
+    switch (region) {
+        case 'top-left':
+            return [linearSpeed, angularSpeed];       // Forward + Left
+        case 'top-center':
+            return [linearSpeed, 0];                   // Forward
+        case 'top-right':
+            return [linearSpeed, -angularSpeed];      // Forward + Right
+        case 'center-left':
+            return [0, angularSpeed];                  // Left
+        case 'center':
+            return [0, 0];                             // No movement
+        case 'center-right':
+            return [0, -angularSpeed];                 // Right
+        case 'bottom-left':
+            return [-linearSpeed, angularSpeed];      // Reverse + Left
+        case 'bottom-center':
+            return [-linearSpeed, 0];                  // Reverse
+        case 'bottom-right':
+            return [-linearSpeed, -angularSpeed];     // Reverse + Right
+        default:
+            return [0, 0];
+    }
 }
 
 /**
